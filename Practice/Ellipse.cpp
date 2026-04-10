@@ -1,119 +1,123 @@
 #include <GL/glut.h>
-#include <iostream>
-#include <cmath>
-#define PI 3.141592
+#include <bits/stdc++.h>
 
 using namespace std;
 
-int radius_x, radius_y;
-int xc, yc;
+float b_col[3] = {1.0, 0, 0};
+float f_col[3] = {0, 1.0, 1.0};
+float o_col[3] = {1.0, 0.0 ,0.0};
+
+bool isSameCol(float c1[3], float c2[3])
+{
+    return (c1[0] == c2[0] && c1[1] == c2[1] && c1[2] == c2[2]);
+}
 
 void init()
 {
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClearColor(1, 1, 1, 1);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, 500, 0, 500);
 }
 
-void input()
+void floodFill(int x, int y)
 {
-    cout << "Enter the x-radius of the ellipse: ";
-    cin >> radius_x;
-    cout << "Enter the y-radius of the ellipse: ";
-    cin >> radius_y;
-    cout << "Enter the center coordinate: ";
-    cin >> xc >> yc;
+    float c_col[3];
+    glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, c_col);
+
+    if (isSameCol(c_col, o_col))
+    {
+        glPointSize(2.0);
+        glColor3fv(f_col);
+
+        glBegin(GL_POINTS);
+        glVertex2i(x, y);
+
+        glEnd();
+        glFlush();
+
+        floodFill(x - 2, y);
+        floodFill(x, y - 2);
+        floodFill(x + 2, y);
+        floodFill(x, y + 2);
+    }
 }
 
-void draw_Ellipse_Easy(int xc, int yc, int radius_x, int radius_y)
+void boundaryFill(int x, int y)
 {
-    int n = 1000; // give any large number
-    for(int i = 0; i <= n; i++)
+    float curr_col[3];
+    glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, curr_col);
+
+    if(isSameCol(curr_col, b_col) or isSameCol(curr_col, f_col))
+        return;
+
+    glPointSize(2.0);
+    glColor3fv(f_col);
+
+    glBegin(GL_POINTS);
+    glVertex2i(x, y);
+
+    glEnd();
+    glFlush();
+
+    boundaryFill(x - 2, y);
+    boundaryFill(x, y - 2);
+    boundaryFill(x + 2, y);
+    boundaryFill(x, y + 2);
+}
+
+void drawEllipse(int cx, int cy, int rx, int ry)
+{
+    int n = 360;
+    for(int i = 0; i < n; i++)
     {
-        float angle = (2.0 * PI * i) / n;
-        float x = xc + radius_x * cos(angle);
-        float y = yc + radius_y * sin(angle); // for circle, put radius_y = radius_x
+        float angle = (2 * i * 3.141592) / n;
+        float x = cx + rx * cos(angle);
+        float y = cy + ry * sin(angle);
         glVertex2f(x, y);
     }
 }
 
-void draw_Ellipse_Algorithm(int xc, int yc, int rx, int ry)
-{
-    int x = 0, y = ry;
-    int p = (ry * ry) + (rx * rx * 0.25) - (rx * rx * ry);
-    int dy = 0, dx = 1;
-    while(dy < dx)
-    {
-        glVertex2i(x + xc, y + yc);
-        glVertex2i(-x + xc, y + yc);
-        glVertex2i(-x + xc, -y + yc);
-        glVertex2i(x + xc, -y + yc);
-        
-        x += 1;
-        if(p < 0){
-            dy = ry * ry * x;
-            dx = rx * rx * y;
-            p += 2 * dy + ry * ry;
-        }
-        else
-        {
-            y -= 1;
-            dy = ry * ry * x;
-            dx = rx * rx * y;
-            p += 2 * dy + (ry * ry) - 2 * dx;
-        }
-    }
-
-    double p1 = ry * ry * pow(x + 0.5, 2) + rx * rx * pow(y - 1, 2.0) - rx * rx * ry * ry;
-    while(y >= 0)
-    {
-        glVertex2i(x + xc, y + yc);
-        glVertex2i(-x + xc, y + yc);
-        glVertex2i(-x + xc, -y + yc);
-        glVertex2i(x + xc, -y + yc);
-
-        y -= 1;
-        dx = rx * rx * y;
-        dy = ry * ry * x;
-        if(p1 > 0)
-            p1 += rx * rx - 2 * dx;
-        else
-        {
-            x += 1;
-            dy = ry * ry * x;
-            p1 += rx * rx + 2 * dy - 2 * dx;
-        }
-    }
-}
-                                                                                                  
 void display()
 {
     glClear(GL_COLOR_BUFFER_BIT);
-    glColor3f(0.0, 1.0, 1.0);
-
-    glPointSize(2.0);
-    glBegin(GL_POINTS);
-    draw_Ellipse_Algorithm(xc, yc, radius_x, radius_y);
-    glEnd();
-
-    // glLineWidth(2.0);
-    // glBegin(GL_LINE_STRIP);
-    // draw_Ellipse_Easy(xc, yc, radius_x, radius_y);
+    glLineWidth(5.0);
+    glColor3fv(b_col);
+    //For Flood Fill
+    // glBegin(GL_POLYGON);
+    // drawEllipse(200, 200, 100, 75);
     // glEnd();
+    // glFlush();
+    //floodFill(200, 200);
+    //glFlush();
+    
+    //For Boundary Fill
+    glColor3fv(b_col);
+    glBegin(GL_LINE_LOOP);
+    drawEllipse(350, 350, 100, 75);
+    glEnd();
+    //boundaryFill(350, 350);
     glFlush();
 }
 
+void mouse(int button, int state, int x, int y)
+{
+    if(button == GLUT_LEFT_BUTTON and state == GLUT_DOWN)
+    {
+        boundaryFill(x, 500 - y);
+    }
+}
 
 int main(int argc, char **argv)
 {
-    input();
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(500, 500);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutCreateWindow("Ellipse");
+
     init();
     glutDisplayFunc(display);
+    glutMouseFunc(mouse);
     glutMainLoop();
     return 0;
 }
